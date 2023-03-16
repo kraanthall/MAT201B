@@ -109,20 +109,3 @@ void renderLSystem(const LSystem &lsys, const std::string &str, float f) {
 
 
 }
-
-//   void generateAndRenderBranches(std::vector<al::Vec3f> &vertices, const LSystem &lsys, float probability, std::pair<int, int> range) {
-//     // mesh.compress(); // vertices + indices represetnation
-//     // mesh.vertices(); // ...is the list of unique vertices
-//     // mesh.indices();  // ...is the list of connectedness of vertices
-//     // mesh.compress();
-//     int n = range.second;  // TODO: random selection from range
-//     for (auto vert: vertices) {
-//         if (probability > rnd::uniform()) {  // randomly generate branches
-//             al::Mesh m(al::Mesh::LINES);
-//             renderLSystem(generateString(lsys, n), vert, 0.9, m);
-//         }
-//         // cout << vert << endl;
-//         // mesh.vertex(vert);
-//         // mesh.color(1, 1, 1);
-//     }
-//   }

@@ -59,7 +59,7 @@ struct SimpleVoice : PositionedVoice {
     registerParameters(frequency, modulation, index);
 
     envelope.levels(0, 1, 0);
-    envelope.lengths(0.01, 0.667);
+    envelope.lengths(0.01, 0.1);
 
     audioMesh.primitive(Mesh::LINE_STRIP);
     for (int i = 0; i < stft.numBins(); i++) {

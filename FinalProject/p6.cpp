@@ -22,7 +22,7 @@ using namespace std;
 
 using namespace gam;
 
-const int N{27};  // number of iterations for main system
+const int N{72};  // number of iterations for main system
 
 // frequency ratios for whole tone scale
 float tonic = 440 / 2;
@@ -138,6 +138,7 @@ struct Axes {
 };
 
 LSystemType MAIN_LSYS_TYPE{LSystemType::BOURKE_ALGAE_2};
+// LSystemType MAIN_LSYS_TYPE{LSystemType::BOURKE_BUSH_2};
 
 
 // --------------------------------------------------------------
@@ -196,19 +197,18 @@ struct AlloApp : public DistributedApp {
     // --------------------------------------------------------------
     mainSystemString = generateString(mainSystem, N);  // This only generates the string which will be parsed later.
     cout << "main l-sys type: " << TYPE_NAMES.at(MAIN_LSYS_TYPE) << endl;
-    // cout << mainSystem << endl;
     cout << "iterations: " << N << endl;
     cout << "string:\n" << mainSystemString << endl;
 
     // --------------------------------------------------------------
-    // 2a. BUILD THE MAIN L-SYSTEM VERTICES
+    // 2. BUILD THE MAIN L-SYSTEM VERTICES
     // --------------------------------------------------------------
     
     struct State : al::Pose {
         al::Color color;
 
-        // float currentAngle = mainSystem.angle;
-        // float currentLength = mainSystem.length;
+        float currentAngle = mainSystem.angle;
+        float currentLength = mainSystem.length;
 
         State(const al::Vec3f& position, const al::Color& color)
             : al::Pose(position), color(color)
@@ -217,50 +217,53 @@ struct AlloApp : public DistributedApp {
 
     std::vector<State> state;  // push_back / pop_back
     // std::vector<al::Pose> state;  // push_back / pop_back
+    struct ColorQueue {
+        std::vector<al::Color> colors;
+        int index = 0;
 
-    state.push_back(State{al::Vec3f(0, 0, 0), al::Color(1, 1, 1)});
-    float currentAngle = mainSystem.angle *0.3;
-    float currentLength = mainSystem.length * 0.3;
+        ColorQueue(const std::vector<al::Color>& colors) : colors(colors) {}
 
-    // cout << mainSystem.scaleFactor << endl;
+        al::Color& operator[](int i) {
+            return colors[(index + i) % colors.size()];
+        }
+
+        al::Color& next() {
+            index = (index + 1) % colors.size();
+            return colors[index];
+        }
+    };
+    // circular queue of green and green/brown colors
+    ColorQueue colorQueue{{al::Color(0, rnd::uniform(0.67, 1.0), 0), al::Color(rnd::uniform(0.33, 0.67), rnd::uniform(0.3, 0.5), 0)}};
+
+    state.push_back(State{al::Vec3f(0, 0, 0), al::Color(0.5, 0.3, 0.1)});
     for (char c : mainSystemString) {
-      Vec3f v(currentLength, r(), r());
       if (c == 'F') {  // Move forward by `LSystem.length` drawing a line
         // point a
         mainSystemMesh.vertex(state.back().pos());
         mainSystemMesh.color(state.back().color);
-        
-        state.back().pos() += v;                  // move forward
-        state.back().color = al::Color(0, r(), 0);  // change color
-
+        // move forward
+        state.back().pos() += state.back().uf() * 0.01;//state.back().currentLength;
         // point b
         mainSystemMesh.vertex(state.back().pos());
         mainSystemMesh.color(state.back().color);
-
         // update draw scale (as new branches grow, they get smaller)
-        currentLength *= mainSystem.scaleFactor;
-
-      } else if (c == 'f') {  // Move forward by `LSystem.length` without drawing a line
-          continue;
-          // state.back().pos() += v;  // move forward
+        state.back().currentLength *= mainSystem.scaleFactor;
       } else if (c == '+') {  // Turn left by `LSystem.angle`
-          currentAngle += mainSystem.angle*0.3;
-
-          v[0] = r() * currentAngle;
-          v[1] = currentLength;// * mainSystem.scaleFactor;
-          v[2] = r() * currentAngle;
+          state.back().currentAngle += mainSystem.angle;
+          // state.back().faceToward(state.back().uu(), s);//90./state.back().currentAngle);
+          state.back().faceToward(state.back().uu(), 0.1);//90./state.back().currentAngle);
+          state.back().faceToward(state.back().ur(), mainSystem.angle/90.f);
       } else if (c == '-') {  // Turn right by `LSystem.currentAngle`
-          currentAngle -= mainSystem.angle*0.3;
-
-          state.back().color[0] = r();
-
-          v[0] = r() * currentAngle;
-          v[1] = r() * currentAngle;
-          v[2] = currentLength;// * mainSystem.scaleFactor;
+          state.back().currentAngle -= mainSystem.angle;
+          // state.back().faceToward(state.back().uu(), -1*rnd::uniform(0.41));//90./state.back().currentAngle);
+          state.back().faceToward(state.back().uu(), -0.1);//90./state.back().currentAngle);
+          state.back().faceToward(state.back().ur(), mainSystem.angle/-90.f);
       } else if (c == '[') {  // CHANGE CURRENT BRANCH
           // Push current state onto stack
           state.push_back(state.back());
-          state.back().color = al::Color(r(), 0, 0);
+          // rotate through color queue
+          state.back().color = colorQueue.next();
+          // state.back().color = al::Color(0, 1, 0);
       } else if (c == ']') {  // RESTORE PREVIOUS BRANCH
           // Pop previous state from stack
           state.pop_back();
@@ -268,7 +271,7 @@ struct AlloApp : public DistributedApp {
       }
     }
     // --------------------------------------------------------------
-    // 2b. RENDER THE MAIN L-SYSTEM VERTICES
+    // 3. RENDER THE MAIN L-SYSTEM VERTICES
     // --------------------------------------------------------------
     // buildBranch(mainSystemMesh, pos, colors, Vec3f(0, 0, 0), RGB(1, 1, 1));
     mainSystemMesh.compress();
