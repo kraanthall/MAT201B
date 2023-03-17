@@ -61,8 +61,8 @@ struct Axes {
 // where ertain vertices in the mesh can generate branches made
 // of different L-Systems.
 LSystemType MAIN_LSYS_TYPE{LSystemType::BOURKE_ALGAE_2};
-// LSystemType MAIN_LSYS_TYPE{LSystemType::BOURKE_BUSH_2};
 LSystem currentSystem{TYPE_DEFS.at(MAIN_LSYS_TYPE)};
+
 al::Mesh currentSystemMesh(al::Mesh::LINES);
 
 struct AlloApp : public DistributedApp {
@@ -83,9 +83,6 @@ struct AlloApp : public DistributedApp {
   Axes axes;
 
   std::string currentSystemString;
-
-  std::vector<Vec3f> pos;
-  std::vector<RGB> colors;
 
   void onInit() override {
     // set up GUI
@@ -213,9 +210,7 @@ struct AlloApp : public DistributedApp {
     // --------------------------------------------------------------
     // 3. RENDER THE MAIN L-SYSTEM VERTICES
     // --------------------------------------------------------------
-    // buildBranch(currentSystemMesh, pos, colors, Vec3f(0, 0, 0), RGB(1, 1, 1));
     // currentSystemMesh.compress();
-
     g.draw(currentSystemMesh);
 
     scene.render(g);  // Render graphics
