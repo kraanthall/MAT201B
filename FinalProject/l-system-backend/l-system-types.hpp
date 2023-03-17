@@ -4,11 +4,6 @@
 enum class LSystemType {
     BOURKE_BUSH_2,
     BOURKE_ALGAE_2,
-    // TREE,
-    // KochCurve,
-    // SierpinskiTriangle,
-    // DragonCurve,
-    // HilbertCurve
 };
 
 const std::map<LSystemType, std::string> TYPE_NAMES {
@@ -23,8 +18,8 @@ const std::map<LSystemType, LSystem> TYPE_DEFS {
         {'[', ']', '+', '-'},  // CONSTANTS
         "F",  // AXIOM
         22.5f,  // ANGLE
-        10.0f,  // LENGTH
-        0.95f,  // SCALE FACTOR
+        1.0f,  // LENGTH
+        1.0f,  // SCALE FACTOR
         {{'F', "FF+[+F-F-F]-[-F+F+F]"}})  // RULES
     },
 
@@ -33,8 +28,8 @@ const std::map<LSystemType, LSystem> TYPE_DEFS {
         {'[', ']', '+', '-'},  // CONSTANTS
         "aF",  // AXIOM
         12.0f,  // ANGLE
-        10.0f,  // LENGTH
-        0.75f,  // SCALE FACTOR
+        1.0f,  // LENGTH
+        1.0f,  // SCALE FACTOR
         {
             {'a', "FFFFFy[++++n][----t]fb"},
             {'b', "+FFFFFy[++++n][----t]fc"},
