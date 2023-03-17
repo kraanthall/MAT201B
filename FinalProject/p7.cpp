@@ -19,12 +19,8 @@ using namespace std;
 
 using namespace gam;
 
-const int N{72};  // number of iterations for main system
-
-// frequency ratios for whole tone scale
-float tonic = 440 / 2;
-float ratios[12] = {1.0, 1.059463, 1.122462, 1.189207, 1.259921, 1.334840,
-                    1.414214, 1.498307, 1.587401, 1.681793, 1.781797, 1.887749};
+const int MAX_N{72};  // max number of iterations for main system
+int n{0};             // current number of iterations for main system
 
 double r() { return rnd::uniformS(); }
 RGB c() { return RGB(rnd::uniform(), rnd::uniform(), rnd::uniform()); }
@@ -57,10 +53,6 @@ struct Axes {
   }
 };
 
-LSystemType MAIN_LSYS_TYPE{LSystemType::BOURKE_ALGAE_2};
-// LSystemType MAIN_LSYS_TYPE{LSystemType::BOURKE_BUSH_2};
-
-
 // --------------------------------------------------------------
 // 0. GET THE L-SYSTEM TYPE FOR THE MAIN SYSTEM
 // --------------------------------------------------------------
@@ -68,66 +60,92 @@ LSystemType MAIN_LSYS_TYPE{LSystemType::BOURKE_ALGAE_2};
 // The main l-system will work like an interconnected root network 
 // where ertain vertices in the mesh can generate branches made
 // of different L-Systems.
-LSystem mainSystem{TYPE_DEFS.at(MAIN_LSYS_TYPE)};
-Mesh mainSystemMesh(Mesh::LINES);
-
-Mesh branchMesh(Mesh::LINES);
+LSystemType MAIN_LSYS_TYPE{LSystemType::BOURKE_ALGAE_2};
+// LSystemType MAIN_LSYS_TYPE{LSystemType::BOURKE_BUSH_2};
+LSystem currentSystem{TYPE_DEFS.at(MAIN_LSYS_TYPE)};
+al::Mesh currentSystemMesh(al::Mesh::LINES);
 
 struct AlloApp : public DistributedApp {
-//   Parameter timeStep{"Time Step", "", 0.33f, "", 0.01, 3.0};
+  // ParameterChoice lsysType{"L-System Type", "", 0};
+  ParameterInt generations{"Generations", "", 0, "", 0, MAX_N};
 //   Parameter epsilon{"Epsilon", "", 0.000000001, "", 0.0001, 0.1};
 //   Parameter randomness{"Randomness", "", 0.000000001, "", 0.0, 1.0};
   // Parameter pointSize{"/pointSize", "", 1.0, 0.0, 2.0};
+
+  // get vector strings for each L-System type from the TYPE_NAMES map
+  // std::vector<string> typeNames;
+  // for (auto &type : TYPE_NAMES) {
+  //   // typeNames.push_back(type.second);
+  //   std::cout << type.second << std::endl;
+  // }
+  // lsysType.setElements(typeNames);
+
   Axes axes;
 
-  std::string mainSystemString;
+  std::string currentSystemString;
 
   std::vector<Vec3f> pos;
   std::vector<RGB> colors;
-
-
-  struct StepState {
-    // Vec3f startPoint;
-    // RGB startColor;
-    std::vector<Vec3f> path;
-    // std::vector<RGB> cVec;
-    double timeStep;
-    double elapsedTime;
-
-    // constructor
-    StepState(const std::vector<Vec3f> &pVec, double t) : path(pVec), timeStep(t), elapsedTime(0.0) {}
-
-  };
-  std::vector<StepState> stepStates;
-
 
   void onInit() override {
     // set up GUI
     auto GUIdomain = GUIDomain::enableGUI(defaultWindowDomain());
     auto &gui = GUIdomain->newGUI();
-    // gui.add(timeStep);
+    // gui.add(lsysType);
+    gui.add(generations);
     // gui.add(epsilon);
     // gui.add(randomness);
   }
 
   void onCreate() override {
+
+    nav().pos(0, 0, 10); 
+  }
+
+  // bool stepOn = false;
+    bool onKeyDown(Keyboard const &k) {
+        if (k.key() == ' ') {  // Start a new sequence through tree
+          
+        }
+        return true;
+  }
+  
+  float angle = 0;
+  float time = 0.f;
+  // float interval = 1.f;
+  int index = 0;
+  void onAnimate(double dt) override {
+    n = generations.get();
+    scene.update(dt);
+    // nav().faceToward(Vec3d(0, 0, 0));
+  }
+
+  void onDraw(Graphics &g) override {
+    g.clear(0);
+    g.meshColor();
+
+    // g.rotate(angle, 0, 1, 0);
+    // axes.draw(g);
+
     // --------------------------------------------------------------
     // 1. GENERATE THE MAIN L-SYSTEM STRING
     // --------------------------------------------------------------
-    mainSystemString = generateString(mainSystem, N);  // This only generates the string which will be parsed later.
-    cout << "main l-sys type: " << TYPE_NAMES.at(MAIN_LSYS_TYPE) << endl;
-    cout << "iterations: " << N << endl;
-    cout << "string:\n" << mainSystemString << endl;
+
+    currentSystemString = generateString(currentSystem, n);//generations.get());  // This only generates the string which will be parsed later.
+    // cout << "main l-sys type: " << TYPE_NAMES.at(MAIN_LSYS_TYPE) << endl;
+    // cout << "iterations: " << n << endl;
+    // cout << "string:\n" << currentSystemString << endl;
 
     // --------------------------------------------------------------
     // 2. BUILD THE MAIN L-SYSTEM VERTICES
     // --------------------------------------------------------------
+    currentSystemMesh.reset();
     
     struct State : al::Pose {
         al::Color color;
 
-        float currentAngle = mainSystem.angle;
-        float currentLength = mainSystem.length;
+        float currentAngle = currentSystem.angle;
+        float currentLength = currentSystem.length;
         int depth = 0;
 
         State(const al::Vec3f& position, const al::Color& color)
@@ -156,28 +174,28 @@ struct AlloApp : public DistributedApp {
     ColorQueue colorQueue{{al::Color(0, rnd::uniform(0.67, 1.0), 0), al::Color(rnd::uniform(0.33, 0.67), rnd::uniform(0.3, 0.5), 0)}};
 
     state.push_back(State{al::Vec3f(0, 0, 0), al::Color(0.5, 0.3, 0.1)});
-    for (char c : mainSystemString) {
+    for (char c : currentSystemString) {
       if (c == 'F') {  // Move forward by `LSystem.length` drawing a line
         // point a
-        mainSystemMesh.vertex(state.back().pos());
-        mainSystemMesh.color(state.back().color);
+        currentSystemMesh.vertex(state.back().pos());
+        currentSystemMesh.color(state.back().color);
         // move forward
         state.back().pos() += state.back().uf() * 0.01;//state.back().currentLength;
         // point b
-        mainSystemMesh.vertex(state.back().pos());
-        mainSystemMesh.color(state.back().color);
+        currentSystemMesh.vertex(state.back().pos());
+        currentSystemMesh.color(state.back().color);
         // update draw scale (as new branches grow, they get smaller)
-        state.back().currentLength *= mainSystem.scaleFactor;
+        state.back().currentLength *= currentSystem.scaleFactor;
       } else if (c == '+') {  // Turn left by `LSystem.angle`
-          state.back().currentAngle += mainSystem.angle;
+          state.back().currentAngle += currentSystem.angle;
           // state.back().faceToward(state.back().uu(), s);//90./state.back().currentAngle);
           state.back().faceToward(state.back().uu(), 0.1);//90./state.back().currentAngle);
-          state.back().faceToward(state.back().ur(), mainSystem.angle/90.f);
+          state.back().faceToward(state.back().ur(), currentSystem.angle/90.f);
       } else if (c == '-') {  // Turn right by `LSystem.currentAngle`
-          state.back().currentAngle -= mainSystem.angle;
+          state.back().currentAngle -= currentSystem.angle;
           // state.back().faceToward(state.back().uu(), -1*rnd::uniform(0.41));//90./state.back().currentAngle);
           state.back().faceToward(state.back().uu(), -0.1);//90./state.back().currentAngle);
-          state.back().faceToward(state.back().ur(), mainSystem.angle/-90.f);
+          state.back().faceToward(state.back().ur(), currentSystem.angle/-90.f);
       } else if (c == '[') {  // CHANGE CURRENT BRANCH
           // Push current state onto stack
           ++state.back().depth;
@@ -195,91 +213,11 @@ struct AlloApp : public DistributedApp {
     // --------------------------------------------------------------
     // 3. RENDER THE MAIN L-SYSTEM VERTICES
     // --------------------------------------------------------------
-    // buildBranch(mainSystemMesh, pos, colors, Vec3f(0, 0, 0), RGB(1, 1, 1));
-    mainSystemMesh.compress();
+    // buildBranch(currentSystemMesh, pos, colors, Vec3f(0, 0, 0), RGB(1, 1, 1));
+    // currentSystemMesh.compress();
 
-    nav().pos(0, 0, 10); 
-  }
+    g.draw(currentSystemMesh);
 
-  // bool stepOn = false;
-    bool onKeyDown(Keyboard const &k) {
-        if (k.key() == ' ') {  // Start a new sequence through tree
-          
-        }
-        return true;
-  }
-  
-  float angle = 0;
-  float time = 0.f;
-  // float interval = 1.f;
-  int index = 0;
-  void onAnimate(double dt) override {
-    scene.update(dt);
-    // if (stepStates.size() > 0) {
-    //   for (auto &state : stepStates) {
-    //     // update current position
-    //     state.elapsedTime += dt;
-    //     if (state.elapsedTime > state.timeStep) {
-    //       // reset internal clock
-    //       state.elapsedTime = 0.f;
-
-    //       // update current timestep
-    //       state.timeStep = 0.05 * (state.path[index] - state.path[index + 1]).mag();
-          
-    //       // make sound at vertex
-    //       auto *freeVoice = scene.getVoice<SimpleVoice>();
-    //       Pose pose;
-    //       pose.vec(mainSystemMesh.vertices().at(index));
-
-    //       freeVoice->setPose(pose);
-    //       scene.triggerOn(freeVoice);
-
-    //       ++index;
-    //       if (index >= mainSystemMesh.vertices().size()) {
-    //         stepOn = false;
-    //         // mainSystemMesh.vertices().erase(mainSystemMesh.vertices().begin() + index);
-    //         index = 0;
-    //         stepStates.pop_back();
-    //       }
-    //     }
-    //   }
-    // }
-    // nav().faceToward(Vec3d(0, 0, 0));
-  }
-
-  void onDraw(Graphics &g) override {
-    g.clear(0);
-    g.meshColor();
-
-    // g.rotate(angle, 0, 1, 0);
-    // axes.draw(g);
-
-    g.draw(mainSystemMesh);
-    // g.draw(branchMesh);
-    // mainSystemMesh.compress();
-    // for (auto& ind : mainSystemMesh.vertices()) {
-    //   std::cout << ind << std::endl;
-    // }
-    // --------------------------------------------------------------
-    // 3. GENERATE AND RENDER BRANCHES
-    // --------------------------------------------------------------
-//     int nLayers = 1;  // how many layers of branches to generate
-//     mainSystemMesh.compress();  // compress the mesh to remove redundant vertices
-//     auto roots = mainSystemMesh.vertices();
-//     std::vector<LSystemType> branchTypes = {LSystemType::BOURKE_BUSH_2};  // TODO: add more types
-
-//     // Overlay `nLayers` of branches from the main L-system's vertices
-//     for (int i = 0; i < nLayers; ++i) {
-//         // randomly select from a list of LSystem types
-//         LSystemType lsysType = branchTypes[rnd::uniformi(branchTypes.size())];
-//         LSystem lsys = TYPE_DEF[lsysType];  // get the LSystem struct for the selected type
-//         lsys.setRenderActions(&STD_RULES_DRAW);
-
-//         float probability = 0.667;  // hardcoding for now
-//         // min/max number of iterations for the branch L-system
-//         std::pair iterRange = {1, N * 3};  // hardcoding for now
-//         generateAndRenderBranches(roots, lsys, probability, iterRange);
-//     }
     scene.render(g);  // Render graphics
   }
   DistributedScene scene{TimeMasterMode::TIME_MASTER_CPU};
