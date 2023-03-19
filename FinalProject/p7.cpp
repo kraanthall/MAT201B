@@ -19,8 +19,9 @@ using namespace std;
 
 using namespace gam;
 
-const int MAX_N{72};  // max number of iterations for main system
+const int MAX_N{54};  // max number of iterations for main system
 int n{0};             // current number of iterations for main system
+int prev{0};          // previous number of iterations for main system
 
 double r() { return rnd::uniformS(); }
 RGB c() { return RGB(rnd::uniform(), rnd::uniform(), rnd::uniform()); }
@@ -112,6 +113,7 @@ struct AlloApp : public DistributedApp {
   // float interval = 1.f;
   int index = 0;
   void onAnimate(double dt) override {
+    // prev = n;
     n = generations.get();
     scene.update(dt);
     // nav().faceToward(Vec3d(0, 0, 0));
@@ -127,6 +129,10 @@ struct AlloApp : public DistributedApp {
     // *****************************************************************************
     // TODO:  only perform the algorithm if the number of iterations has changed!!!!
     // *****************************************************************************
+    // if (n == prev) {
+    //     // g.draw(currentSystemMesh);
+    //     // return;
+    // }
 
     // --------------------------------------------------------------
     // 1. GENERATE THE MAIN L-SYSTEM STRING
