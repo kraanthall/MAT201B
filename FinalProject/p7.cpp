@@ -67,7 +67,7 @@ al::Mesh currentSystemMesh(al::Mesh::LINES);
 
 struct AlloApp : public DistributedApp {
   // ParameterChoice lsysType{"L-System Type", "", 0};
-  ParameterInt currentSystemIndex{"L-System", "", 1, "", 0, 4};
+  ParameterInt currentSystemIndex{"L-System", "", 1, "", 0, 5};
   ParameterInt generations{"Generations", "", 0, "", 0, MAX_N};
   ParameterInt indices{"indices", "", 0, "", 0, MAX_VERTEX_COUNT};
 //   Parameter epsilon{"Epsilon", "", 0.000000001, "", 0.0001, 0.1};
@@ -156,6 +156,9 @@ struct AlloApp : public DistributedApp {
       case 4:
         currentSystemType = LSystemType::BOURKE_LEAF;
         break;
+      case 5:
+        currentSystemType = LSystemType::ALGAE;
+        break;
     }
     currentSystem = TYPE_DEFS.at(currentSystemType);
 
@@ -230,6 +233,12 @@ struct AlloApp : public DistributedApp {
         currentSystemMesh.color(state.back().color);
         // update draw scale (as new branches grow, they get smaller)
         // state.back().currentLength *= currentSystem.scaleFactor;
+        state.back().color = colorQueue.next();
+        alpha -= epsilon;
+      } else if (c == 'f') {  // Move forward by `LSystem.length` without drawing a line
+        state.back().pos() += state.back().uf() * 0.01;//(1.f - alpha);//state.back().currentLength;
+        state.back().color = colorQueue.next();
+        // state.back().currentLength *= currentSystem.scaleFactor;
         alpha -= epsilon;
       } else if (c == '+') {  // Turn left by `LSystem.angle`
           state.back().currentAngle += currentSystem.angle;
@@ -248,8 +257,12 @@ struct AlloApp : public DistributedApp {
           ++state.back().depth;
           state.push_back(state.back());
           // rotate through color queue
-          state.back().color = colorQueue.next();
-          // state.back().color = al::Color(0, 1, 0);
+          state.back().color.b = state.back().color.r;
+          
+          state.back().color.r = state.back().color.g;
+          state.back().color.g = state.back().color.b;
+
+          // state.back().color.b = rnd::uniform();
       } else if (c == ']') {  // RESTORE PREVIOUS BRANCH
           // Pop previous state from stack
           state.pop_back();
