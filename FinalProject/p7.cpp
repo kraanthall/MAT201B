@@ -127,7 +127,8 @@ struct AlloApp : public DistributedApp {
     n_prev = n;
     n = generations.get();
   
-    if (n == n_prev && sys_prev == sys_index) {
+    if (n == n_prev && sys_prev == sys_index) {      
+      nav().smooth(0.5);
       nav().faceToward(avg);
       return;
     }
@@ -143,21 +144,42 @@ struct AlloApp : public DistributedApp {
     switch (sys_index) {
       case 0:
         currentSystemType = LSystemType::BOURKE_BUSH_2;
+        n = (n > 10) ? 10 : n;        
         break;
       case 1:
         currentSystemType = LSystemType::BOURKE_ALGAE_2;
+        // n = 10;
+        // if (generations.get() > n) {
+        //   generations.set(n);
+        // }
         break;
       case 2:
         currentSystemType = LSystemType::BOURKE_WEED;
+        n = (n > 11) ? 11 : n;
+        // if (generations.get() > n) {
+        //   generations.set(n);
+        // }
         break;
       case 3:
         currentSystemType = LSystemType::BOURKE_CRYSTAL;
+        n = (n > 10) ? 10 : n;
+        // if (generations.get() > n) {
+        //   generations.set(n);
+        // }
         break;
       case 4:
         currentSystemType = LSystemType::BOURKE_LEAF;
+        // n = 23;
+        // if (generations.get() > n) {
+        //   generations.set(n);
+        // }
         break;
       case 5:
         currentSystemType = LSystemType::ALGAE;
+        // n = 23;
+        // if (generations.get() > n) {
+        //   generations.set(n);
+        // }
         break;
     }
     currentSystem = TYPE_DEFS.at(currentSystemType);
@@ -256,11 +278,10 @@ struct AlloApp : public DistributedApp {
           // Push current state onto stack
           ++state.back().depth;
           state.push_back(state.back());
-          // rotate through color queue
-          state.back().color.b = state.back().color.r;
+          // rotate through color queue          
           
-          state.back().color.r = state.back().color.g;
-          state.back().color.g = state.back().color.b;
+          state.back().color.b = rnd::uniform(0.0, 0.5);
+          state.back().color.g = rnd::uniform();
 
           // state.back().color.b = rnd::uniform();
       } else if (c == ']') {  // RESTORE PREVIOUS BRANCH
@@ -281,7 +302,7 @@ struct AlloApp : public DistributedApp {
 
     avg /= currentSystemMesh.vertices().size();
     // std::cout << "avg: " << avg << std::endl;
-    // nav().smooth(0.5);
+    nav().smooth(0.5);
     // nav().faceToward(avg);
     nav().faceToward(avg);
   }
