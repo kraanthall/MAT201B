@@ -67,7 +67,7 @@ al::Mesh currentSystemMesh(al::Mesh::LINES);
 
 struct AlloApp : public DistributedApp {
   // ParameterChoice lsysType{"L-System Type", "", 0};
-  ParameterInt currentSystemIndex{"L-System", "", 1, "", 0, 5};
+  ParameterInt currentSystemIndex{"L-System", "", 2, "", 0, 6};
   ParameterInt generations{"Generations", "", 0, "", 0, MAX_N};
   ParameterInt indices{"indices", "", 0, "", 0, MAX_VERTEX_COUNT};
 //   Parameter epsilon{"Epsilon", "", 0.000000001, "", 0.0001, 0.1};
@@ -98,7 +98,8 @@ struct AlloApp : public DistributedApp {
   }
 
   void onCreate() override {
-    nav().pos(0, 0, 10); 
+    // nav().pos(0, 0, 10);
+    nav().pos(0.0450724, 0.512891, 0.348702);
     nav().quat(Quatd(0, 0, 0, 1));
   }
 
@@ -127,7 +128,9 @@ struct AlloApp : public DistributedApp {
     n_prev = n;
     n = generations.get();
   
-    if (n == n_prev && sys_prev == sys_index) {      
+    if (n == n_prev && sys_prev == sys_index) {    
+      // nav().pos(0, 0, 1); 
+      // nav().quat(Quatd(0, 0, 0, 1));  
       nav().smooth(0.5);
       nav().faceToward(avg);
       return;
@@ -147,34 +150,41 @@ struct AlloApp : public DistributedApp {
         n = (n > 10) ? 10 : n;        
         break;
       case 1:
-        currentSystemType = LSystemType::BOURKE_ALGAE_2;
+        currentSystemType = LSystemType::BOURKE_ALGAE;
         // n = 10;
         // if (generations.get() > n) {
         //   generations.set(n);
         // }
         break;
       case 2:
+        currentSystemType = LSystemType::BOURKE_ALGAE_2;
+        // n = 10;
+        // if (generations.get() > n) {
+        //   generations.set(n);
+        // }
+        break;
+      case 3:
         currentSystemType = LSystemType::BOURKE_WEED;
         n = (n > 11) ? 11 : n;
         // if (generations.get() > n) {
         //   generations.set(n);
         // }
         break;
-      case 3:
+      case 4:
         currentSystemType = LSystemType::BOURKE_CRYSTAL;
         n = (n > 10) ? 10 : n;
         // if (generations.get() > n) {
         //   generations.set(n);
         // }
         break;
-      case 4:
+      case 5:
         currentSystemType = LSystemType::BOURKE_LEAF;
         // n = 23;
         // if (generations.get() > n) {
         //   generations.set(n);
         // }
         break;
-      case 5:
+      case 6:
         currentSystemType = LSystemType::ALGAE;
         // n = 23;
         // if (generations.get() > n) {
@@ -302,8 +312,9 @@ struct AlloApp : public DistributedApp {
 
     avg /= currentSystemMesh.vertices().size();
     // std::cout << "avg: " << avg << std::endl;
+    nav().quat(Quatd(0, 0, 0, 1));
+
     nav().smooth(0.5);
-    // nav().faceToward(avg);
     nav().faceToward(avg);
   }
 
