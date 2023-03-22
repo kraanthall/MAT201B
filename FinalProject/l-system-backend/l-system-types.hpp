@@ -12,7 +12,11 @@ enum class LSystemType {
 
 const std::map<LSystemType, std::string> TYPE_NAMES {
     {LSystemType::BOURKE_BUSH_2, "BOURKE_BUSH_2"},
-    {LSystemType::BOURKE_ALGAE_2, "BOURKE_ALGAE_2"}
+    {LSystemType::BOURKE_ALGAE_2, "BOURKE_ALGAE_2"},
+    {LSystemType::BOURKE_WEED, "BOURKE_WEED"},
+    {LSystemType::BOURKE_CRYSTAL, "BOURKE_CRYSTAL"},
+    {LSystemType::BOURKE_LEAF, "BOURKE_LEAF"},
+    {LSystemType::ALGAE, "ALGAE"}
 };
 
 // Definitions for L-System types
@@ -91,7 +95,7 @@ const std::map<LSystemType, LSystem> TYPE_DEFS {
     {LSystemType::BOURKE_LEAF, LSystem(
         {'F', 'a', 'b', 'x', 'y'},  // VARIABLES
         {'[', ']', '+', '-', '<', '>'},  // CONSTANTS
-        "F",  // AXIOM
+        "a",  // AXIOM
         45.f,  // ANGLE
         1.0f,  // LENGTH
         1.36f,  // SCALE FACTOR
@@ -112,8 +116,8 @@ const std::map<LSystemType, LSystem> TYPE_DEFS {
         1.0f,  // LENGTH
         1.0f,  // SCALE FACTOR
         {
-            {'F', "+F+Ff"},
-            {'f', "-F-Ff"},
+            {'F', "+F++Ff"},
+            {'f', "-F-Ff-"},
         })  // RULES
     }
 };
