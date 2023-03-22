@@ -4,6 +4,10 @@
 enum class LSystemType {
     BOURKE_BUSH_2,
     BOURKE_ALGAE_2,
+    BOURKE_WEED,
+    BOURKE_CRYSTAL,
+    BOURKE_LEAF,
+    ALGAE
 };
 
 const std::map<LSystemType, std::string> TYPE_NAMES {
@@ -56,6 +60,61 @@ const std::map<LSystemType, LSystem> TYPE_DEFS {
             {'x', "fFFF[+s]"},
             {'y', "Fy"}
         })
+    },
+
+    {LSystemType::BOURKE_WEED, LSystem(
+        {'F', 'X', 'Y'},  // VARIABLES
+        {'[', ']', '+', '-'},  // CONSTANTS
+        "F",  // AXIOM
+        22.5f,  // ANGLE
+        1.0f,  // LENGTH
+        1.0f,  // SCALE FACTOR
+        {
+            {'F', "FF-[XY]+[XY]"},
+            {'X', "+FY"},
+            {'Y', "-FX"}
+        })  // RULES
+    },
+
+    {LSystemType::BOURKE_CRYSTAL, LSystem(
+        {'F'},  // VARIABLES
+        {'+', '-'},  // CONSTANTS
+        "F+F+F+F",  // AXIOM
+        90.0f,  // ANGLE
+        1.0f,  // LENGTH
+        1.0f,  // SCALE FACTOR
+        {
+            {'F', "FF+F++F+F"}
+        })  // RULES
+    },
+
+    {LSystemType::BOURKE_LEAF, LSystem(
+        {'F', 'a', 'b', 'x', 'y'},  // VARIABLES
+        {'[', ']', '+', '-', '<', '>'},  // CONSTANTS
+        "F",  // AXIOM
+        45.f,  // ANGLE
+        1.0f,  // LENGTH
+        1.36f,  // SCALE FACTOR
+        {
+            {'F', " >F<"},
+            {'a', "F[+x]Fb"},
+            {'b', "F[-y]Fa"},
+            {'x', "a"},
+            {'y', "b"}
+        })  // RULES
+    },
+
+    {LSystemType::ALGAE, LSystem(
+        {'F', 'f',},  // VARIABLES
+        {'+', '-'},  // CONSTANTS
+        "F",  // AXIOM
+        33.33f,  // ANGLE
+        1.0f,  // LENGTH
+        1.0f,  // SCALE FACTOR
+        {
+            {'F', "+F+Ff"},
+            {'f', "-F-Ff"},
+        })  // RULES
     }
 };
 
