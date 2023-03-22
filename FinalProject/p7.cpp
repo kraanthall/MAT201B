@@ -100,7 +100,7 @@ struct AlloApp : public DistributedApp {
   void onCreate() override {
     // nav().pos(0, 0, 10);
     nav().pos(0.0450724, 0.512891, 0.348702);
-    nav().quat(Quatd(0, 0, 0, 1));
+    // nav().quat(Quatd(0, 0, 0, 1));
   }
 
   // bool stepOn = false;
@@ -129,7 +129,6 @@ struct AlloApp : public DistributedApp {
     n = generations.get();
   
     if (n == n_prev && sys_prev == sys_index) {    
-      // nav().pos(0, 0, 1); 
       // nav().quat(Quatd(0, 0, 0, 1));  
       nav().smooth(0.5);
       nav().faceToward(avg);
@@ -142,6 +141,7 @@ struct AlloApp : public DistributedApp {
     if (sys_index != sys_prev) {
       n = 0;
       generations.set(0);
+      nav().pos(0.0450724, 0.512891, 0.348702);
     }
 
     switch (sys_index) {
@@ -312,9 +312,9 @@ struct AlloApp : public DistributedApp {
 
     avg /= currentSystemMesh.vertices().size();
     // std::cout << "avg: " << avg << std::endl;
-    nav().quat(Quatd(0, 0, 0, 1));
 
     nav().smooth(0.5);
+    // nav().quat(Quatd(0, 1, 0, 0));
     nav().faceToward(avg);
   }
 
