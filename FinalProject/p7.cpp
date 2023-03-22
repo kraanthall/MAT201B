@@ -19,9 +19,9 @@ using namespace std;
 
 using namespace gam;
 
-const int MAX_N{54};  // max number of iterations for main system
+const int MAX_VERTEX_COUNT{500000};
+const int MAX_N{72};  // max number of iterations for main system
 int n{0};             // current number of iterations for main system
-int prev{0};          // previous number of iterations for main system
 
 double r() { return rnd::uniformS(); }
 RGB c() { return RGB(rnd::uniform(), rnd::uniform(), rnd::uniform()); }
@@ -55,20 +55,21 @@ struct Axes {
 };
 
 // --------------------------------------------------------------
-// 0. GET THE L-SYSTEM TYPE FOR THE MAIN SYSTEM
+// 0. GET THE TYPE FOR THE CURRENT L-SYSTEM
 // --------------------------------------------------------------
 // This is the type of the main system.
 // The main l-system will work like an interconnected root network 
 // where ertain vertices in the mesh can generate branches made
 // of different L-Systems.
-LSystemType MAIN_LSYS_TYPE{LSystemType::BOURKE_ALGAE_2};
-LSystem currentSystem{TYPE_DEFS.at(MAIN_LSYS_TYPE)};
-
+LSystemType currentSystemType{LSystemType::BOURKE_ALGAE_2};
+LSystem currentSystem{TYPE_DEFS.at(currentSystemType)};
 al::Mesh currentSystemMesh(al::Mesh::LINES);
 
 struct AlloApp : public DistributedApp {
   // ParameterChoice lsysType{"L-System Type", "", 0};
+  ParameterInt currentSystemIndex{"L-System", "", 1, "", 0, 4};
   ParameterInt generations{"Generations", "", 0, "", 0, MAX_N};
+  ParameterInt indices{"indices", "", 0, "", 0, MAX_VERTEX_COUNT};
 //   Parameter epsilon{"Epsilon", "", 0.000000001, "", 0.0001, 0.1};
 //   Parameter randomness{"Randomness", "", 0.000000001, "", 0.0, 1.0};
   // Parameter pointSize{"/pointSize", "", 1.0, 0.0, 2.0};
@@ -89,15 +90,16 @@ struct AlloApp : public DistributedApp {
     // set up GUI
     auto GUIdomain = GUIDomain::enableGUI(defaultWindowDomain());
     auto &gui = GUIdomain->newGUI();
-    // gui.add(lsysType);
+    gui.add(currentSystemIndex);
     gui.add(generations);
+    gui.add(indices);
     // gui.add(epsilon);
     // gui.add(randomness);
   }
 
   void onCreate() override {
-
     nav().pos(0, 0, 10); 
+    nav().quat(Quatd(0, 0, 0, 1));
   }
 
   // bool stepOn = false;
@@ -112,39 +114,62 @@ struct AlloApp : public DistributedApp {
   float time = 0.f;
   // float interval = 1.f;
   int index = 0;
+  int n_prev = 0;
+  int sys_prev = 0;
+  int sys_index = 1;
+  Vec3f avg = Vec3f(0, 0, 0);
   void onAnimate(double dt) override {
-    // prev = n;
-    n = generations.get();
     scene.update(dt);
-    // nav().faceToward(Vec3d(0, 0, 0));
-  }
-
-  void onDraw(Graphics &g) override {
-    g.clear(0);
-    g.meshColor();
-
-    // g.rotate(angle, 0, 1, 0);
-    // axes.draw(g);
-
-    // *****************************************************************************
-    // TODO:  only perform the algorithm if the number of iterations has changed!!!!
-    // *****************************************************************************
-    // if (n == prev) {
-    //     // g.draw(currentSystemMesh);
-    //     // return;
-    // }
+    
+    sys_prev = sys_index;
+    sys_index = currentSystemIndex.get();
+    
+    n_prev = n;
+    n = generations.get();
+  
+    if (n == n_prev && sys_prev == sys_index) {
+      nav().faceToward(avg);
+      return;
+    }
 
     // --------------------------------------------------------------
-    // 1. GENERATE THE MAIN L-SYSTEM STRING
+    // 0. GET THE TYPE FOR THE CURRENT L-SYSTEM
+
+    if (sys_index != sys_prev) {
+      n = 0;
+      generations.set(0);
+    }
+
+    switch (sys_index) {
+      case 0:
+        currentSystemType = LSystemType::BOURKE_BUSH_2;
+        break;
+      case 1:
+        currentSystemType = LSystemType::BOURKE_ALGAE_2;
+        break;
+      case 2:
+        currentSystemType = LSystemType::BOURKE_WEED;
+        break;
+      case 3:
+        currentSystemType = LSystemType::BOURKE_CRYSTAL;
+        break;
+      case 4:
+        currentSystemType = LSystemType::BOURKE_LEAF;
+        break;
+    }
+    currentSystem = TYPE_DEFS.at(currentSystemType);
+
+    // --------------------------------------------------------------
+    // 1. GENERATE THE CURRENT L-SYSTEM STRING
     // --------------------------------------------------------------
 
     currentSystemString = generateString(currentSystem, n);//generations.get());  // This only generates the string which will be parsed later.
-    // cout << "main l-sys type: " << TYPE_NAMES.at(MAIN_LSYS_TYPE) << endl;
+    // cout << "main l-sys type: " << TYPE_NAMES.at(currentSystemType) << endl;
     // cout << "iterations: " << n << endl;
     // cout << "string:\n" << currentSystemString << endl;
 
     // --------------------------------------------------------------
-    // 2. BUILD THE MAIN L-SYSTEM VERTICES
+    // 2. BUILD THE CURRENT L-SYSTEM VERTICES
     // --------------------------------------------------------------
     currentSystemMesh.reset();
     
@@ -181,27 +206,42 @@ struct AlloApp : public DistributedApp {
     ColorQueue colorQueue{{al::Color(0, rnd::uniform(0.67, 1.0), 0), al::Color(rnd::uniform(0.33, 0.67), rnd::uniform(0.3, 0.5), 0)}};
 
     state.push_back(State{al::Vec3f(0, 0, 0), al::Color(0.5, 0.3, 0.1)});
+    int maxDepth = state.back().depth;
+    float alpha = 0.1;
+    float epsilon = 0.00001;
     for (char c : currentSystemString) {
+
+      if (currentSystemMesh.vertices().size() > MAX_VERTEX_COUNT) {
+        cout << "max vertices reached" << endl;
+        break;
+      }
+
+      if (state.back().depth > maxDepth) {
+          maxDepth = state.back().depth;
+      }
       if (c == 'F') {  // Move forward by `LSystem.length` drawing a line
         // point a
         currentSystemMesh.vertex(state.back().pos());
         currentSystemMesh.color(state.back().color);
         // move forward
-        state.back().pos() += state.back().uf() * 0.01;//state.back().currentLength;
+        state.back().pos() += state.back().uf() * 0.01;//(1.f - alpha);//state.back().currentLength;
         // point b
         currentSystemMesh.vertex(state.back().pos());
         currentSystemMesh.color(state.back().color);
         // update draw scale (as new branches grow, they get smaller)
-        state.back().currentLength *= currentSystem.scaleFactor;
+        // state.back().currentLength *= currentSystem.scaleFactor;
+        alpha -= epsilon;
       } else if (c == '+') {  // Turn left by `LSystem.angle`
           state.back().currentAngle += currentSystem.angle;
-          // state.back().faceToward(state.back().uu(), s);//90./state.back().currentAngle);
-          state.back().faceToward(state.back().uu(), 0.1);//90./state.back().currentAngle);
+          state.back().faceToward(state.back().uu(), 0.5*currentSystem.angle/90.f);
           state.back().faceToward(state.back().ur(), currentSystem.angle/90.f);
+      } else if (c == '>') {
+        state.back().currentLength /= currentSystem.scaleFactor;
+      } else if (c == '>') {
+        state.back().currentLength *= currentSystem.scaleFactor;
       } else if (c == '-') {  // Turn right by `LSystem.currentAngle`
           state.back().currentAngle -= currentSystem.angle;
-          // state.back().faceToward(state.back().uu(), -1*rnd::uniform(0.41));//90./state.back().currentAngle);
-          state.back().faceToward(state.back().uu(), -0.1);//90./state.back().currentAngle);
+          state.back().faceToward(state.back().uu(), -0.5*currentSystem.angle/90.f);
           state.back().faceToward(state.back().ur(), currentSystem.angle/-90.f);
       } else if (c == '[') {  // CHANGE CURRENT BRANCH
           // Push current state onto stack
@@ -215,12 +255,36 @@ struct AlloApp : public DistributedApp {
           state.pop_back();
           --state.back().depth;
           // state.back().color = al::Color(0, 0, 1);
-      }
+      }      
     }
+    currentSystemMesh.compress();
+    indices.set(currentSystemMesh.indices().size());
+
+    // average of each vertex in the mesh
+    avg = Vec3f(0, 0, 0);
+    for (auto &v : currentSystemMesh.vertices()) {
+        avg += v;
+    }
+
+    avg /= currentSystemMesh.vertices().size();
+    // std::cout << "avg: " << avg << std::endl;
+    // nav().smooth(0.5);
+    // nav().faceToward(avg);
+    nav().faceToward(avg);
+  }
+
+  void onDraw(Graphics &g) override {
+    g.clear(0);
+    g.meshColor();
+
+    g.rotate(angle, 0, 1, 0);
+    // axes.draw(g);
+
+    
+    // std:: cout << "max depth: " << maxDepth << std::endl;
     // --------------------------------------------------------------
-    // 3. RENDER THE MAIN L-SYSTEM VERTICES
+    // 3. RENDER THE CURRENT L-SYSTEM VERTICES
     // --------------------------------------------------------------
-    // currentSystemMesh.compress();
     g.draw(currentSystemMesh);
 
     scene.render(g);  // Render graphics
