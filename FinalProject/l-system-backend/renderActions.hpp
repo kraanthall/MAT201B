@@ -18,7 +18,7 @@ const std::map<char, std::string> STD_RULES_DRAW {
     {']', "Pop current drawing state from the stack"},
     // {'#', "Increment the line width by line width increment"},
     // {'!', "Decrement the line width by line width increment"},
-    // {'@', "Draw a dot with line width radius"},
+    {'@', "Draw a dot with line width radius"},
     // {'{', "Open a polygon"},
     // {'}', "Close a polygon and fill it with fill colour"},
     {'>', "Multiply the line length by the line length scale factor"},

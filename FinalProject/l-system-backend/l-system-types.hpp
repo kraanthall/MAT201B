@@ -3,17 +3,15 @@
 // L-system types ("Presets")
 enum class LSystemType {
     BOURKE_BUSH_2,
-    BOURKE_ALGAE,
     BOURKE_ALGAE_2,
     BOURKE_WEED,
     BOURKE_CRYSTAL,
     BOURKE_LEAF,
-    ALGAE
+    ALGAE,
 };
 
 const std::map<LSystemType, std::string> TYPE_NAMES {
     {LSystemType::BOURKE_BUSH_2, "BOURKE_BUSH_2"},
-    {LSystemType::BOURKE_ALGAE, "BOURKE_ALGAE"},
     {LSystemType::BOURKE_ALGAE_2, "BOURKE_ALGAE_2"},
     {LSystemType::BOURKE_WEED, "BOURKE_WEED"},
     {LSystemType::BOURKE_CRYSTAL, "BOURKE_CRYSTAL"},
@@ -23,6 +21,19 @@ const std::map<LSystemType, std::string> TYPE_NAMES {
 
 // Definitions for L-System types
 const std::map<LSystemType, LSystem> TYPE_DEFS {
+    {LSystemType::ALGAE, LSystem(
+        {'F', 'f'},  // VARIABLES
+        {},  // CONSTANTS
+        "F",  // AXIOM
+        33.33f,  // ANGLE
+        1.0f,  // LENGTH
+        1.667f,  // SCALE FACTOR
+        {
+            {'F', "-fF@"},
+            {'f', "F+F+"}
+        })  // RULES
+    },
+
     {LSystemType::BOURKE_BUSH_2, LSystem(
         {'F'},  // VARIABLES
         {'[', ']', '+', '-'},  // CONSTANTS
@@ -33,38 +44,6 @@ const std::map<LSystemType, LSystem> TYPE_DEFS {
         {{'F', "FF+[+F-F-F]-[-F+F+F]"}})  // RULES
     },
 
-    {LSystemType::BOURKE_ALGAE, LSystem(
-        {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y'},  // VARIABLES
-        {'[', ']', '+', '-'},  // CONSTANTS
-        "aF",  // AXIOM
-        12.0f,  // ANGLE
-        1.0f,  // LENGTH
-        1.0f,  // SCALE FACTOR
-        {
-            {'a', "FFFFFv[+++h][---q]fb"},
-            {'b', "FFFFFv[+++h][---q]fc"},
-            {'c', "FFFFFv[+++fa]fd"},
-            {'d', "FFFFFv[+++h][---q]fe"},
-            {'e', "FFFFFv[+++h][---q]fg"},
-            {'g', "FFFFFv[---fa]fa"},
-            {'h', "ifFF"},
-            {'i', "fFFF[--m]j"},
-            {'j', "fFFF[--n]k"},
-            {'k', "fFFF[--o]l"},
-            {'l', "fFFF[--p]"},
-            {'m', "fFn"},
-            {'n', "fFo"},
-            {'o', "fFp"},
-            {'p', "fF"},
-            {'q', "rfF"},
-            {'r', "fFFF[++m]s"},
-            {'s', "fFFF[++n]t"},
-            {'t', "fFFF[++o]u"},
-            {'u', "fFFF[++p]"},
-            {'v', "Fv"}
-        })
-    },
-    
     {LSystemType::BOURKE_ALGAE_2, LSystem(
         {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y'},  // VARIABLES
         {'[', ']', '+', '-'},  // CONSTANTS
@@ -111,11 +90,11 @@ const std::map<LSystemType, LSystem> TYPE_DEFS {
             {'F', "FF-[XY]+[XY]"},
             {'X', "+FY"},
             {'Y', "-FX"}
-        })  // RULES
+        })
     },
 
     {LSystemType::BOURKE_CRYSTAL, LSystem(
-        {'F'},  // VARIABLES
+        {'F', 'X', 'Y'},  // VARIABLES
         {'+', '-'},  // CONSTANTS
         "F+F+F+F",  // AXIOM
         90.0f,  // ANGLE
@@ -123,36 +102,31 @@ const std::map<LSystemType, LSystem> TYPE_DEFS {
         1.0f,  // SCALE FACTOR
         {
             {'F', "FF+F++F+F"}
-        })  // RULES
+        })
     },
 
+    // axiom = a
+    // F -> >F<
+    // a -> F[+x]Fb
+    // b -> F[-y]Fa
+    // x -> a
+    // y -> b
+    // angle = 45
+    // length factor = 1.36
     {LSystemType::BOURKE_LEAF, LSystem(
         {'F', 'a', 'b', 'x', 'y'},  // VARIABLES
-        {'[', ']', '+', '-', '<', '>'},  // CONSTANTS
+        {'[', ']', '+', '-'},  // CONSTANTS
         "a",  // AXIOM
-        45.f,  // ANGLE
+        45.0f,  // ANGLE
         1.0f,  // LENGTH
         1.36f,  // SCALE FACTOR
         {
-            {'F', " >F<"},
+            {'F', ">F<"},
             {'a', "F[+x]Fb"},
             {'b', "F[-y]Fa"},
             {'x', "a"},
             {'y', "b"}
-        })  // RULES
-    },
-
-    {LSystemType::ALGAE, LSystem(
-        {'F', 'f',},  // VARIABLES
-        {'+', '-'},  // CONSTANTS
-        "F",  // AXIOM
-        33.33f,  // ANGLE
-        1.0f,  // LENGTH
-        1.0f,  // SCALE FACTOR
-        {
-            {'F', "+F++Ff"},
-            {'f', "-F-Ff-"},
-        })  // RULES
+        })
     }
 };
 
