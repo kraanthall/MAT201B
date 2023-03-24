@@ -20,7 +20,8 @@ using namespace std;
 using namespace gam;
 
 const int MAX_VERTEX_COUNT{500000};
-const int MAX_N{72};  // max number of iterations for main system
+const int MAX_N{36
+};  // max number of iterations for main system
 int n{0};             // current number of iterations for main system
 
 double r() { return rnd::uniformS(); }
@@ -67,9 +68,14 @@ al::Mesh currentSystemMesh(al::Mesh::LINES);
 
 struct AlloApp : public DistributedApp {
   // ParameterChoice lsysType{"L-System Type", "", 0};
-  ParameterInt currentSystemIndex{"L-System", "", 2, "", 0, 6};
-  ParameterInt generations{"Generations", "", 0, "", 0, MAX_N};
-  ParameterInt indices{"indices", "", 0, "", 0, MAX_VERTEX_COUNT};
+  ParameterInt currentSystemIndex{"L-System", "", 0, "", 0, 5};
+  ParameterInt generations{"Generations", "", 3, "", 0, MAX_N};
+  Parameter timeRate{"Time Rate", "", 0.0, "", 0.0, 1.0};
+  Parameter upAmt{"'Up' Scale",  "", 0.0, "", -1.0, 1.0};
+  Parameter angleScale{"'Angle' Scale",  "", 1.0, "", -1.0, 1.0};
+  Parameter epsilon{"Epsilon", "", 0.07, "", 0.0001, 1.0};
+  // ParameterInt indices{"indices", "", 0, "", 0, MAX_VERTEX_COUNT};
+  Parameter cameraOffset{"Camera", "", 0.0, "", 0.0, 1.0};
 //   Parameter epsilon{"Epsilon", "", 0.000000001, "", 0.0001, 0.1};
 //   Parameter randomness{"Randomness", "", 0.000000001, "", 0.0, 1.0};
   // Parameter pointSize{"/pointSize", "", 1.0, 0.0, 2.0};
@@ -92,15 +98,18 @@ struct AlloApp : public DistributedApp {
     auto &gui = GUIdomain->newGUI();
     gui.add(currentSystemIndex);
     gui.add(generations);
-    gui.add(indices);
-    // gui.add(epsilon);
-    // gui.add(randomness);
+    gui.add(timeRate);
+    gui.add(upAmt);
+    gui.add(angleScale);
+    gui.add(epsilon);
+    gui.add(cameraOffset);
+    // gui.add(indices);
+
   }
 
   void onCreate() override {
-    // nav().pos(0, 0, 10);
-    nav().pos(0.0450724, 0.512891, 0.348702);
     // nav().quat(Quatd(0, 0, 0, 1));
+    nav().pos(0.658833, 1.53509, -0.269824); 
   }
 
   // bool stepOn = false;
@@ -112,26 +121,45 @@ struct AlloApp : public DistributedApp {
   }
   
   float angle = 0;
-  float time = 0.f;
+  double time = 0.f;
+  double time2 = 0.f;
   // float interval = 1.f;
   int index = 0;
   int n_prev = 0;
   int sys_prev = 0;
-  int sys_index = 1;
+  int sys_index = 0;
+  double prev_amt = 0.0;
+  double eps = 0.0;
   Vec3f avg = Vec3f(0, 0, 0);
+  std::vector<double> times{0, 0};
   void onAnimate(double dt) override {
+    angle += 0.5;
+    // cout << nav().pos() << endl;
     scene.update(dt);
+    
+    if (n && timeRate.get()) {
+      upAmt.set((tanh(sin(time))) * 1.3);
+      // upAmt.set(sin(time));
+      angleScale.set(cos(time2));
+      epsilon.set(0.5*sin(9.36*(time+time2)/2.0) + 0.5);
+      time  += dt * timeRate.get() * 0.667;
+      time2 += dt * timeRate.get() * 0.333;
+    } else { 
+      time = asin(upAmt.get());
+      time2 = acos(angleScale.get());
+      eps = 2 * asin((epsilon.get() - 0.5) / 0.5);
+      // epsilon = asin(epsilon.get());
+    }
     
     sys_prev = sys_index;
     sys_index = currentSystemIndex.get();
     
     n_prev = n;
     n = generations.get();
-  
-    if (n == n_prev && sys_prev == sys_index) {    
-      // nav().quat(Quatd(0, 0, 0, 1));  
-      nav().smooth(0.5);
-      nav().faceToward(avg);
+    if (n == n_prev && sys_prev == sys_index && upAmt.get() == prev_amt) {
+      nav().smooth(0.95);
+      nav().faceToward(Vec3f(0,0,0).lerp(avg, cameraOffset.get()));
+      // nav().faceToward(Vec3f(0, 0, 0));
       return;
     }
 
@@ -141,50 +169,44 @@ struct AlloApp : public DistributedApp {
     if (sys_index != sys_prev) {
       n = 0;
       generations.set(0);
-      nav().pos(0.0450724, 0.512891, 0.348702);
     }
 
+    int limit = 0;
     switch (sys_index) {
       case 0:
         currentSystemType = LSystemType::BOURKE_BUSH_2;
-        n = (n > 10) ? 10 : n;        
+        limit = 5;
+        if (n > limit) { n = limit; generations.set(n); }
         break;
       case 1:
-        currentSystemType = LSystemType::BOURKE_ALGAE;
-        // n = 10;
-        // if (generations.get() > n) {
-        //   generations.set(n);
-        // }
-        break;
-      case 2:
         currentSystemType = LSystemType::BOURKE_ALGAE_2;
         // n = 10;
         // if (generations.get() > n) {
         //   generations.set(n);
         // }
         break;
-      case 3:
+      case 2:
         currentSystemType = LSystemType::BOURKE_WEED;
-        n = (n > 11) ? 11 : n;
-        // if (generations.get() > n) {
-        //   generations.set(n);
-        // }
+        if (n > 9) {
+          n = 9;
+          generations.set(9);
+        }
+        break;
+      case 3:
+        currentSystemType = LSystemType::BOURKE_CRYSTAL;
+        if (n > 10) {
+          n = 10;
+          generations.set(10);
+        }
         break;
       case 4:
-        currentSystemType = LSystemType::BOURKE_CRYSTAL;
-        n = (n > 10) ? 10 : n;
-        // if (generations.get() > n) {
-        //   generations.set(n);
-        // }
-        break;
-      case 5:
         currentSystemType = LSystemType::BOURKE_LEAF;
         // n = 23;
         // if (generations.get() > n) {
         //   generations.set(n);
         // }
         break;
-      case 6:
+      case 5:
         currentSystemType = LSystemType::ALGAE;
         // n = 23;
         // if (generations.get() > n) {
@@ -214,6 +236,7 @@ struct AlloApp : public DistributedApp {
         float currentAngle = currentSystem.angle;
         float currentLength = currentSystem.length;
         int depth = 0;
+        double currentAlpha;
 
         State(const al::Vec3f& position, const al::Color& color)
             : al::Pose(position), color(color)
@@ -237,72 +260,83 @@ struct AlloApp : public DistributedApp {
             return colors[index];
         }
     };
-    // circular queue of green and green/brown colors
-    ColorQueue colorQueue{{al::Color(0, rnd::uniform(0.67, 1.0), 0), al::Color(rnd::uniform(0.33, 0.67), rnd::uniform(0.3, 0.5), 0)}};
+    
+    ColorQueue colorQueueLeaves{{al::Color(0, 1, 0), al::Color(0.2, 0.75, 0.1), al::Color(0.1, 0.667, 0.41)}};  // Green    
+    ColorQueue colorQueueStems{{al::Color(0.5, 0.3, 0.1), al::Color(0.4, 0.2, 0.1), al::Color(0.3, 0.1, 0.1)}}; // Brown
 
-    state.push_back(State{al::Vec3f(0, 0, 0), al::Color(0.5, 0.3, 0.1)});
+    state.push_back(State{al::Vec3f(0, 0, 0), colorQueueStems[0]});
     int maxDepth = state.back().depth;
-    float alpha = 0.1;
-    float epsilon = 0.00001;
+    double alpha = 0.1;    
+    double upAmtScale = upAmt.get() * (10. / n);// * 0.1;
+    state.back().currentAlpha = alpha;
     for (char c : currentSystemString) {
-
-      if (currentSystemMesh.vertices().size() > MAX_VERTEX_COUNT) {
-        cout << "max vertices reached" << endl;
-        break;
-      }
 
       if (state.back().depth > maxDepth) {
           maxDepth = state.back().depth;
       }
+
       if (c == 'F') {  // Move forward by `LSystem.length` drawing a line
+        if (currentSystemMesh.vertices().size() > MAX_VERTEX_COUNT) {
+          cout << "max vertices reached" << endl;
+          break;        
+        }
+
         // point a
         currentSystemMesh.vertex(state.back().pos());
         currentSystemMesh.color(state.back().color);
-        // move forward
-        state.back().pos() += state.back().uf() * 0.01;//(1.f - alpha);//state.back().currentLength;
+        
+
         // point b
+        state.back().pos() += state.back().uf() * 0.01;//(1.f - alpha);//state.back().currentLength;
+        Color nextColor = Color(0.2, 0.05, 0.05, 0.333);
+        if (state.back().currentAlpha > 1) {
+            state.back().currentAlpha = 1;
+            nextColor = nextColor * 0.667;
+        }
+        state.back().color = state.back().color + (nextColor - state.back().color) * state.back().currentAlpha;
+        state.back().color.a -= state.back().currentAlpha * 0.5;
+        
+        
         currentSystemMesh.vertex(state.back().pos());
         currentSystemMesh.color(state.back().color);
-        // update draw scale (as new branches grow, they get smaller)
-        // state.back().currentLength *= currentSystem.scaleFactor;
-        state.back().color = colorQueue.next();
-        alpha -= epsilon;
+
+        state.back().currentAlpha += epsilon.get();
       } else if (c == 'f') {  // Move forward by `LSystem.length` without drawing a line
         state.back().pos() += state.back().uf() * 0.01;//(1.f - alpha);//state.back().currentLength;
-        state.back().color = colorQueue.next();
-        // state.back().currentLength *= currentSystem.scaleFactor;
-        alpha -= epsilon;
+        // state.back().currentAlpha += epsilon;
       } else if (c == '+') {  // Turn left by `LSystem.angle`
           state.back().currentAngle += currentSystem.angle;
-          state.back().faceToward(state.back().uu(), 0.5*currentSystem.angle/90.f);
-          state.back().faceToward(state.back().ur(), currentSystem.angle/90.f);
-      } else if (c == '>') {
-        state.back().currentLength /= currentSystem.scaleFactor;
+          state.back().faceToward(state.back().uu(), upAmtScale*currentSystem.angle/90.f);
+          state.back().faceToward(state.back().ur(), angleScale.get()*(currentSystem.angle/90.f));
       } else if (c == '>') {
         state.back().currentLength *= currentSystem.scaleFactor;
+      } else if (c == '<') {
+        state.back().currentLength /= currentSystem.scaleFactor;
       } else if (c == '-') {  // Turn right by `LSystem.currentAngle`
           state.back().currentAngle -= currentSystem.angle;
-          state.back().faceToward(state.back().uu(), -0.5*currentSystem.angle/90.f);
-          state.back().faceToward(state.back().ur(), currentSystem.angle/-90.f);
+          state.back().faceToward(state.back().uu(), -upAmtScale*currentSystem.angle/90.f);
+          state.back().faceToward(state.back().ur(), angleScale.get()*(currentSystem.angle/-90.f));
       } else if (c == '[') {  // CHANGE CURRENT BRANCH
-          // Push current state onto stack
-          ++state.back().depth;
           state.push_back(state.back());
-          // rotate through color queue          
           
-          state.back().color.b = rnd::uniform(0.0, 0.5);
-          state.back().color.g = rnd::uniform();
-
-          // state.back().color.b = rnd::uniform();
+          ++state.back().depth;     
+          state.back().color = colorQueueLeaves.next();
       } else if (c == ']') {  // RESTORE PREVIOUS BRANCH
           // Pop previous state from stack
           state.pop_back();
+
           --state.back().depth;
-          // state.back().color = al::Color(0, 0, 1);
-      }      
+          state.back().currentAlpha = alpha;
+          state.back().color = colorQueueStems.next();
+      } else if (c == '@') {
+        state.back().currentAngle = r() * 90.0;
+      }
     }
+
+    // std::cout << "max depth: " << maxDepth << std::endl;   
+
     currentSystemMesh.compress();
-    indices.set(currentSystemMesh.indices().size());
+    // indices.set(currentSystemMesh.indices().size());
 
     // average of each vertex in the mesh
     avg = Vec3f(0, 0, 0);
@@ -312,9 +346,8 @@ struct AlloApp : public DistributedApp {
 
     avg /= currentSystemMesh.vertices().size();
     // std::cout << "avg: " << avg << std::endl;
-
-    nav().smooth(0.5);
-    // nav().quat(Quatd(0, 1, 0, 0));
+    nav().smooth(0.95);
+    // nav().faceToward(Vec3f(0, 0, 0));
     nav().faceToward(avg);
   }
 
@@ -322,9 +355,9 @@ struct AlloApp : public DistributedApp {
     g.clear(0);
     g.meshColor();
 
-    g.rotate(angle, 0, 1, 0);
+    // g.rotate(angle, 0, 1, 0);
     // axes.draw(g);
-
+    std::cout << nav().pos() << std::endl;
     
     // std:: cout << "max depth: " << maxDepth << std::endl;
     // --------------------------------------------------------------
