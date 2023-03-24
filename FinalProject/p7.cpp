@@ -1,6 +1,7 @@
 // Ryan Millett
 // MAT201B-2023
 
+
 #include "l-system-backend/parser.hpp"  // pulls in all the necessary headers
 
 #include "al/app/al_App.hpp"
@@ -73,9 +74,9 @@ struct AlloApp : public DistributedApp {
   Parameter timeRate{"Time Rate", "", 0.0, "", 0.0, 1.0};
   Parameter upAmt{"'Up' Scale",  "", 0.0, "", -1.0, 1.0};
   Parameter angleScale{"'Angle' Scale",  "", 1.0, "", -1.0, 1.0};
-  Parameter epsilon{"Epsilon", "", 0.07, "", 0.0001, 1.0};
+  Parameter epsilon{"Epsilon", "", 0.07, "", 0.00001, 0.5};
   // ParameterInt indices{"indices", "", 0, "", 0, MAX_VERTEX_COUNT};
-  Parameter cameraOffset{"Camera", "", 0.0, "", 0.0, 1.0};
+  Parameter cameraOffset{"Camera", "", 1.0, "", 0.0, 1.0};
 //   Parameter epsilon{"Epsilon", "", 0.000000001, "", 0.0001, 0.1};
 //   Parameter randomness{"Randomness", "", 0.000000001, "", 0.0, 1.0};
   // Parameter pointSize{"/pointSize", "", 1.0, 0.0, 2.0};
@@ -141,7 +142,7 @@ struct AlloApp : public DistributedApp {
       upAmt.set((tanh(sin(time))) * 1.3);
       // upAmt.set(sin(time));
       angleScale.set(cos(time2));
-      epsilon.set(0.5*sin(9.36*(time+time2)/2.0) + 0.5);
+      epsilon.set(abs(0.5*sin(9.36*(time+time2)/2.0)));
       time  += dt * timeRate.get() * 0.667;
       time2 += dt * timeRate.get() * 0.333;
     } else { 
@@ -357,7 +358,7 @@ struct AlloApp : public DistributedApp {
 
     // g.rotate(angle, 0, 1, 0);
     // axes.draw(g);
-    std::cout << nav().pos() << std::endl;
+    // std::cout << nav().pos() << std::endl;
     
     // std:: cout << "max depth: " << maxDepth << std::endl;
     // --------------------------------------------------------------
